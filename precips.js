@@ -19,7 +19,7 @@ function run () {
         await page.goto(url);
         await page.type(station_field, wilmington_station);
         await page.click(station_number_chkbox)
-        await page.type(start_date, "06/30/2021");
+        await page.type(start_date, "07/01/2021");
         await page.type(end_date, "07/18/2021");
         await Promise.all([page.waitForNavigation(), page.click(search_btn)]);
         
@@ -29,12 +29,12 @@ function run () {
           let items_all = document.querySelectorAll(all_precips_selector);
           items_all.forEach((item) => {
             let t = item.innerText.trim()
-            results.push({
-              total: t,
-            });
+            results.push( parseFloat(t) );
           });
-          return results;
+          const total_sums = (acc, current) => acc + current;
+          return results.reduce(total_sums);
         })
+
         browser.close();
         return resolve(totals);
     } catch (e) {
