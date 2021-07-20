@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const VIEWPORT = { width: 2048, height: 1080 };
 
 const url = "https://www.cocorahs.org/ViewData/ListDailyPrecipReports.aspx";
 const station_field = "#frmPrecipReportSearch_ucStationTextFieldsFilter_tbTextFieldValue"
@@ -11,22 +12,29 @@ const next_selector = "#ucReportList_wcNextPager2"
 
 var logger = function(text) { console.log(text); };
 
-function run () {
+function run (pageNum) {
 
   return new Promise(async (resolve, reject) => {
     try {
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({headless: true});
         const page = await browser.newPage();
+        await page.setViewport(VIEWPORT);
         await page.exposeFunction("logger", logger);
         
         //fill in form
         await page.goto(url);
         await page.type(station_field, wilmington_station);
         await page.click(station_number_chkbox)
-        await page.type(start_date, "07/01/2021");
+        await page.type(start_date, "05/01/2021");
         await page.type(end_date, "07/19/2021");
         await Promise.all([page.waitForNavigation(), page.click(search_btn)]);
 
+        if(pageNum > 1)
+        {
+          await page.click(next_selector);
+          await page.waitForNavigation();
+        }
+        
         let totals = await page.evaluate( async () => {
           
           const total_sums = (acc, current) => acc + current;
@@ -35,7 +43,9 @@ function run () {
           let items_all = document.querySelectorAll(all_precips_selector);
           items_all.forEach((item) => {
             let t = item.innerText.trim();
-            results.push( parseFloat(t) );
+            if(t !== "T"){
+              results.push( parseFloat(t) );
+            }
           });
           return (results.reduce(total_sums)).toFixed( 2 );
         })
@@ -48,8 +58,12 @@ function run () {
  })
 }
 
-run().then((value) => {
+run(1).then((value) => {
   console.log(value);
+}).then(() => {
+  run(2).then((value) => {
+  console.log(value);
+  })
 }).
 catch(function errorHandler(err) {
   err.message;
