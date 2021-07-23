@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const VIEWPORT = { width: 2048, height: 1080 };
+const args = process.argv;
 
 const url = "https://www.cocorahs.org/ViewData/ListDailyPrecipReports.aspx";
 const station_field = "#frmPrecipReportSearch_ucStationTextFieldsFilter_tbTextFieldValue"
@@ -8,6 +9,7 @@ const station_number_chkbox = "#frmPrecipReportSearch_ucStationTextFieldsFilter_
 const start_date = "#frmPrecipReportSearch_ucDateRangeFilter_dcStartDate_t"
 const end_date = "#frmPrecipReportSearch_ucDateRangeFilter_dcEndDate_t"
 const wilmington_station = "MA-MD-85"
+const wx_station = args[4] || wilmington_station
 const next_selector = "#ucReportList_wcNextPager2"
 const select_pager = "#ucReportList_wcDropDownListPager"
 
@@ -24,10 +26,10 @@ function run () {
         
         //fill in form
         await page.goto(url);
-        await page.type(station_field, wilmington_station);
+        await page.type(station_field, wx_station);
         await page.click(station_number_chkbox)
-        await page.type(start_date, "01/01/2021");
-        await page.type(end_date, "07/23/2021");
+        await page.type(start_date, args[2]);
+        await page.type(end_date, args[3]);
         await Promise.all([page.waitForNavigation(), page.click(search_btn)]);
         
         const dropdowns = await page.$$eval("select" + select_pager + " option", all => all.map(a => a.textContent))
@@ -71,7 +73,10 @@ function run () {
 }
 
 run().then((value) => {
-  console.log(value);
+  console.log(value + " inches");
+  console.log("Start date was " + args[2])
+  console.log("End date was " + args[3])
+  console.log("Station was " + (args[4] || wx_station))
 }).
 catch(function errorHandler(err) {
   console.log(err.message)
