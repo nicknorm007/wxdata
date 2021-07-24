@@ -35,6 +35,7 @@ function run () {
         const dropdowns = await page.$$eval("select" + select_pager + " option", all => all.map(a => a.textContent))
         let num_pages = dropdowns == 0 ? 1 : dropdowns.length;
         let grand_totals = 0;
+        let full_data = { grand_totals: 0.0, resultsTotal: new Array() };
         
         for(let pgs=1; pgs<=num_pages; pgs++)
         {
@@ -50,6 +51,7 @@ function run () {
             let total_sums = (acc, current) => acc + current;
             let all_precips_selector = "tr[class$='Item'] > td:nth-child(5)"
             let items_all = document.querySelectorAll(all_precips_selector);
+            let results_data = {};
             let results = [];
             items_all.forEach((item) => {
               let t = item.innerText.trim();
@@ -57,14 +59,17 @@ function run () {
                 results.push( parseFloat(t) );
               }
             });
-            return (results.reduce(total_sums)).toFixed( 2 );
-          })
-          grand_totals = parseFloat(grand_totals) + parseFloat(totals)
+            results_data.results = results;
+            results_data.data = results.reduce(total_sums).toFixed( 2 );
+            return results_data;
+          }) //end page
+          full_data.grand_totals = parseFloat(full_data.grand_totals) + parseFloat(totals.data);
+          full_data['resultsTotal'].push(totals.results)
         //end
       }
 
         browser.close();
-        return resolve(grand_totals);
+        return resolve(full_data);
 
     } catch (e) {
         return reject(e);
@@ -73,7 +78,8 @@ function run () {
 }
 
 run().then((value) => {
-  console.log(value + " inches");
+  console.log(value.grand_totals + " inches");
+  console.log(value.resultsTotal.flat());
   console.log("Start date was " + args[2])
   console.log("End date was " + args[3])
   console.log("Station was " + (args[4] || wx_station))
